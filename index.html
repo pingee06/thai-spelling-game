@@ -194,9 +194,13 @@
 
     </div>
 
+    <!-- Firebase SDK (สำหรับ Leaderboard ออนไลน์) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
     <script>
         // ==========================================
-        // ระบบเสียง (Web Audio API Synthesizer) 
+        // ระบบเสียง (Web Audio API Synthesizer)
         // ==========================================
         let audioCtx;
         function initAudio() {
@@ -232,7 +236,80 @@
 
         let bgmEnabled = true;
         let noteIndex = 0;
-        const bgmNotes = [196.00, 261.63, 329.63, 261.63]; 
+        let beatStep = 0;
+
+        // ===== ข้อมูลดนตรี (ทำนอง/เบส) =====
+        const melodyScale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25]; // เพนทาโทนิกสดใส
+        const melodyPattern = [0,2,4,2, 5,4,2,4, 7,5,4,2, 0,2,4,7];                              // 16 สเต็ป (-1=เงียบ)
+        const bassScale = [65.41, 73.42, 82.41, 98.00];                                          // C2 D2 E2 G2
+
+        // กลองคิก (เสียงทุ้มกระแทก)
+        function playKick() {
+            if (!audioCtx) return;
+            try {
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.type = 'sine';
+                o.frequency.setValueAtTime(150, audioCtx.currentTime);
+                o.frequency.exponentialRampToValueAtTime(45, audioCtx.currentTime + 0.15);
+                g.gain.setValueAtTime(0.18, audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+                o.connect(g); g.connect(audioCtx.destination);
+                o.start(); o.stop(audioCtx.currentTime + 0.2);
+            } catch (e) {}
+        }
+        // เสียงนอยซ์ (สำหรับไฮแฮต/สแนร์)
+        function playNoise(duration, volume, hpFreq) {
+            if (!audioCtx) return;
+            try {
+                const sr = audioCtx.sampleRate;
+                const buf = audioCtx.createBuffer(1, Math.max(1, sr * duration), sr);
+                const data = buf.getChannelData(0);
+                for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+                const src = audioCtx.createBufferSource(); src.buffer = buf;
+                const f = audioCtx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hpFreq;
+                const g = audioCtx.createGain();
+                g.gain.setValueAtTime(volume, audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                src.connect(f); f.connect(g); g.connect(audioCtx.destination);
+                src.start(); src.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+        function playHat() { playNoise(0.05, 0.05, 7000); }
+        function playSnare() { playNoise(0.15, 0.10, 1500); }
+
+        // เครื่องเล่นจังหวะ: ยิ่งเลเวลสูง ยิ่งเร็วและเร้าใจขึ้น
+        function updateBGM() {
+            if (!bgmEnabled || !audioCtx) return;
+            // ความถี่ต่อ 1 สเต็ป (โน้ตเขบ็ตสองชั้น) — เลเวลสูงยิ่งถี่
+            let stepFrames = Math.max(6, 16 - level);
+            if (frameCount % stepFrames !== 0) return;
+
+            const s = beatStep % 16;
+            const intensity = Math.min(level, 10);
+
+            // --- ชั้นกลอง (เพิ่มทีละชั้นตามเลเวล) ---
+            if (s % 4 === 0) playKick();                                  // คิกจังหวะหลัก (ทุกเลเวล)
+            if (intensity >= 6 && (s === 6 || s === 14)) playKick();      // คิกเสริมจังหวะขัด (เลเวล 6+)
+            if (intensity >= 2 && s % 2 === 0) playHat();                 // ไฮแฮต (เลเวล 2+)
+            if (intensity >= 5 && s % 2 === 1) playHat();                 // ไฮแฮตถี่ (เลเวล 5+)
+            if (intensity >= 3 && (s === 4 || s === 12)) playSnare();     // สแนร์ (เลเวล 3+)
+
+            // --- เบส ---
+            if (s % 4 === 0) {
+                let bass = bassScale[Math.floor(beatStep / 4) % bassScale.length];
+                playTone(bass, 'triangle', 0.22, 0.05 + intensity * 0.004);
+            }
+
+            // --- ทำนอง ---
+            let n = melodyPattern[s];
+            if (n >= 0) {
+                let wave = intensity < 4 ? 'sine' : (intensity < 8 ? 'triangle' : 'sawtooth');
+                let vol = 0.03 + intensity * 0.003;
+                playTone(melodyScale[n], wave, 0.18, vol);
+            }
+
+            beatStep++;
+        }
 
         const bgmToggleBtn = document.getElementById('bgm-toggle');
         bgmToggleBtn.addEventListener('click', () => {
@@ -248,31 +325,103 @@
         });
 
         // ==========================================
-        // ระบบ LEADERBOARD (จัดเก็บใน localStorage)
+        // ระบบ LEADERBOARD (ออนไลน์ Firebase + สำรองในเครื่อง)
         // ==========================================
         const allCategories = ["แม่กน", "แม่กก", "แม่กด", "แม่กบ"];
         let currentPlayerName = "";
         const categorySelect = document.getElementById('category-select');
 
-        // ดึงข้อมูล Leaderboard ของหมวดนั้นๆ
-        function getLeaderboard(cat) {
-            return JSON.parse(localStorage.getItem('spellGame_lb_' + cat) || '[]');
+        // ----- ☁️ ตั้งค่า Leaderboard ออนไลน์ (Firebase Firestore) -----
+        // วางค่า config จากโปรเจกต์ Firebase ของคุณตรงนี้
+        // (ดูวิธีทำทีละขั้นในไฟล์ "วิธีตั้งค่า-Leaderboard-ออนไลน์.md")
+        const firebaseConfig = {
+            apiKey: "PASTE_API_KEY",
+            authDomain: "PASTE_PROJECT.firebaseapp.com",
+            projectId: "PASTE_PROJECT_ID",
+            storageBucket: "PASTE_PROJECT.appspot.com",
+            messagingSenderId: "PASTE_SENDER_ID",
+            appId: "PASTE_APP_ID"
+        };
+        let useCloud = false;     // true เมื่อเชื่อมต่อคลาวด์สำเร็จ
+        let db = null;
+        let cloudScores = [];     // แคชคะแนนจากคลาวด์ (อัปเดตเรียลไทม์)
+
+        function cloudConfigured() {
+            return !!(window.firebase && firebaseConfig.projectId && !firebaseConfig.projectId.startsWith('PASTE'));
         }
 
-        // บันทึกคะแนนใหม่ (เก็บเฉพาะคะแนนสูงสุดของคนนั้น)
+        // รีเฟรชกระดานที่กำลังแสดงอยู่
+        function refreshBoards() {
+            try {
+                if (gameState === 'PLAYING') updateLiveHUDLeaderboard();
+                else { updateOverallKingUI(); updateMenuCategoryLeaderboard(); }
+            } catch (e) {}
+        }
+
+        // เริ่มเชื่อมต่อคลาวด์ + ฟังข้อมูลแบบเรียลไทม์
+        function initCloud() {
+            if (!cloudConfigured()) {
+                console.log('Leaderboard: ยังไม่ตั้งค่าออนไลน์ — ใช้โหมดเก็บในเครื่อง');
+                return;
+            }
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                useCloud = true;
+                // ทุกครั้งที่มีใครทำคะแนน กระดานจะอัปเดตเองทุกจอ
+                db.collection('scores').onSnapshot(function (snap) {
+                    cloudScores = snap.docs.map(function (d) { return d.data(); })
+                        .filter(function (d) { return d && d.name && typeof d.score === 'number'; });
+                    refreshBoards();
+                }, function (err) {
+                    console.warn('เชื่อมต่อ Leaderboard ออนไลน์ไม่สำเร็จ', err);
+                    useCloud = false;
+                });
+            } catch (e) {
+                console.warn('เริ่มต้นคลาวด์ผิดพลาด', e);
+                useCloud = false;
+            }
+        }
+
+        // ----- อ่านข้อมูล (คลาวด์ถ้ามี ไม่งั้นใช้ในเครื่อง) -----
+        function getLocalLeaderboard(cat) {
+            return JSON.parse(localStorage.getItem('spellGame_lb_' + cat) || '[]');
+        }
+        function getLeaderboard(cat) {
+            if (useCloud) {
+                return cloudScores
+                    .filter(function (p) { return p.category === cat; })
+                    .map(function (p) { return { name: p.name, score: p.score }; })
+                    .sort(function (a, b) { return b.score - a.score; });
+            }
+            return getLocalLeaderboard(cat);
+        }
+
+        // ----- บันทึกคะแนน (เก็บในเครื่องเสมอ + ส่งขึ้นคลาวด์ถ้าเปิดใช้) -----
         function saveScore(cat, name, newScore) {
-            let lb = getLeaderboard(cat);
-            let existingPlayer = lb.find(p => p.name === name);
+            // 1) เก็บในเครื่อง (สำรอง/ออฟไลน์)
+            let lb = getLocalLeaderboard(cat);
+            let existingPlayer = lb.find(function (p) { return p.name === name; });
             if (existingPlayer) {
-                if (newScore > existingPlayer.score) {
-                    existingPlayer.score = newScore;
-                }
+                if (newScore > existingPlayer.score) existingPlayer.score = newScore;
             } else {
                 lb.push({ name: name, score: newScore });
             }
-            // เรียงลำดับคะแนนจากมากไปน้อย
-            lb.sort((a, b) => b.score - a.score);
+            lb.sort(function (a, b) { return b.score - a.score; });
             localStorage.setItem('spellGame_lb_' + cat, JSON.stringify(lb));
+
+            // 2) ส่งขึ้นคลาวด์ (เก็บเฉพาะคะแนนสูงสุดของแต่ละคนต่อหมวด)
+            if (useCloud && db) {
+                try {
+                    const id = (cat + '___' + name).replace(/\//g, '-').slice(0, 200);
+                    const ref = db.collection('scores').doc(id);
+                    ref.get().then(function (snap) {
+                        if (!snap.exists || newScore > (snap.data().score || 0)) {
+                            ref.set({ name: name, category: cat, score: newScore, updatedAt: Date.now() });
+                        }
+                    }).catch(function (e) { console.warn('บันทึกคะแนนขึ้นคลาวด์ไม่สำเร็จ', e); });
+                } catch (e) { console.warn(e); }
+            }
         }
 
         // คำนวณราชาตัวสะกด (คะแนนรวมสูงสุดจากทุกหมวด)
@@ -561,14 +710,7 @@
             if (gameState !== 'PLAYING') return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            if (bgmEnabled) {
-                let bgmSpeed = Math.max(15, 45 - (level * 3)); 
-                if (frameCount % bgmSpeed === 0) {
-                    let freq = bgmNotes[noteIndex % bgmNotes.length];
-                    playTone(freq, 'sine', 0.15, 0.03); 
-                    noteIndex++;
-                }
-            }
+            updateBGM(); // ดนตรีประกอบที่เร้าใจขึ้นตามเลเวล
 
             ctx.fillStyle = '#EBF8FF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -618,7 +760,7 @@
                 prepareWords(selectedCategory);
 
                 gameState = 'PLAYING';
-                score = 0; lives = 3; level = 1; frameCount = 0; noteIndex = 0;
+                score = 0; lives = 3; level = 1; frameCount = 0; noteIndex = 0; beatStep = 0;
                 fallingWords = [];
                 player.x = canvas.width / 2 - player.width / 2;
                 
@@ -654,12 +796,13 @@
         // เมื่อเปิดหน้าเว็บครั้งแรก
         setTimeout(() => {
             resizeCanvas();
+            initCloud();              // เชื่อมต่อ Leaderboard ออนไลน์ (ถ้าตั้งค่าไว้)
             updateOverallKingUI();
             updateMenuCategoryLeaderboard();
             // ดึงชื่อเก่า (ถ้ามีเคยเล่น) มาใส่รอไว้
             const lastPlayer = localStorage.getItem('spellGame_lastPlayer');
             if(lastPlayer) document.getElementById('player-name-input').value = lastPlayer;
-        }, 100); 
+        }, 100);
 
         // จำชื่อล่าสุดที่กรอก
         document.getElementById('player-name-input').addEventListener('change', function(e) {
