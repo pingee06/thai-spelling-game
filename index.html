@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เกม “ตะลุยตัวสะกดไม่ตรงมาตรา” v2.1</title>
+    <title>เกม “ตะลุยตัวสะกดไม่ตรงมาตรา” v3.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -27,9 +27,9 @@
             body { padding: 1rem; }
             #game-container {
                 width: 100%;
-                max-width: 800px;
-                height: 80vh;
-                max-height: 800px;
+                max-width: 900px;
+                height: 85vh;
+                max-height: 850px;
                 border-radius: 1.5rem;
                 border: 4px solid #4ade80;
                 margin: 0 auto;
@@ -44,23 +44,38 @@
             width: 100%; 
             height: 100%; 
         }
+        
+        /* สไตล์พิเศษสำหรับ Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #555; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen relative">
 
     <div id="game-container" class="relative bg-white overflow-hidden">
         
+        <!-- HUD บอกสถานะเกม และ Leaderboard แบบ Real-time -->
         <div id="hud" class="absolute top-0 left-0 w-full p-2 sm:p-4 flex justify-between items-start pointer-events-none hidden z-10">
-            <div class="flex flex-col gap-1 sm:gap-2 pointer-events-auto">
-                <div id="hud-mission" class="bg-green-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl shadow-md font-bold text-sm sm:text-lg border-2 border-white">
+            <div class="flex flex-col gap-1 sm:gap-2 pointer-events-auto max-w-[130px] sm:max-w-[200px]">
+                <div id="hud-mission" class="bg-green-600 text-white px-2 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl shadow-md font-bold text-xs sm:text-base border-2 border-white">
                     🎯 เก็บคำ: แม่กน
                 </div>
-                <div class="bg-purple-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl shadow-md font-bold text-sm sm:text-xl border-2 border-white inline-block text-center transition-transform" id="level-container">
+                <div class="bg-purple-600 text-white px-2 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl shadow-md font-bold text-xs sm:text-base border-2 border-white inline-block text-center transition-transform" id="level-container">
                     ⭐ เลเวล: <span id="level-display">1</span>
                 </div>
-                <button id="bgm-toggle" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl shadow-md font-bold text-xs sm:text-sm border-2 border-white transition-colors cursor-pointer w-fit mt-1">
+                <button id="bgm-toggle" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl shadow-md font-bold text-[10px] sm:text-sm border-2 border-white transition-colors cursor-pointer w-fit mt-1">
                     🎵 เปิดเพลง
                 </button>
+                
+                <!-- ทำเนียบแชมป์ Live Top 5 -->
+                <div class="mt-2 bg-white/90 rounded-xl p-1 sm:p-2 border-2 border-yellow-400 shadow-md">
+                    <div class="text-[10px] sm:text-xs font-bold text-yellow-600 text-center mb-1">🏆 ทำเนียบแชมป์</div>
+                    <div id="hud-leaderboard" class="flex flex-col gap-1">
+                        <!-- รายชื่อจะถูกเติมด้วย JS -->
+                    </div>
+                </div>
             </div>
             
             <div class="flex flex-col items-end gap-1 sm:gap-2 pointer-events-auto">
@@ -73,53 +88,108 @@
             </div>
         </div>
 
-        <div id="main-menu" class="absolute inset-0 bg-gradient-to-b from-green-50 to-emerald-200 flex flex-col items-center justify-center z-20 p-4 overflow-y-auto">
-            <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-green-700 mb-2 drop-shadow-md text-center leading-tight">
-                เกม “ตะลุยตัวสะกด<br class="sm:hidden">ไม่ตรงมาตรา”
-            </h1>
-            <h2 class="text-sm sm:text-lg md:text-xl font-bold text-pink-600 mb-4 bg-white px-4 py-1 sm:py-2 rounded-full shadow-md border-2 border-pink-200 text-center">
-                สำหรับชั้นประถมศึกษาปีที่ 3
-            </h2>
-            
-            <div class="bg-white/90 p-4 sm:p-5 rounded-2xl shadow-lg border-2 sm:border-4 border-green-300 mb-4 flex flex-col items-center w-full max-w-[95%] sm:max-w-md text-center transition hover:scale-105">
-                <p class="text-gray-600 font-bold mb-1 text-xs sm:text-sm">จัดทำโดย</p>
-                <p class="text-xl sm:text-2xl text-blue-700 font-extrabold mb-1 sm:mb-3">ครูสุวรรณ์ษา ใหญ่พงษ์</p>
-                <p class="text-sm sm:text-md text-gray-800 font-semibold">โรงเรียนอนุบาลพรหมบุรี(วัดกุฎีทอง)</p>
-                <p class="text-xs sm:text-sm text-gray-700 mt-1">สพป. สิงห์บุรี</p>
+        <!-- หน้าปกเกม / เมนูหลัก -->
+        <div id="main-menu" class="absolute inset-0 bg-gradient-to-b from-green-50 to-emerald-200 z-20 flex flex-col p-3 sm:p-4 overflow-y-auto md:overflow-hidden custom-scroll">
+
+            <!-- ส่วนหัว -->
+            <div class="text-center shrink-0 mb-2 sm:mb-3">
+                <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-green-700 drop-shadow-md leading-tight">
+                    เกม “ตะลุยตัวสะกดไม่ตรงมาตรา”
+                </h1>
+                <span class="inline-block text-xs sm:text-sm md:text-base font-bold text-pink-600 bg-white px-3 py-0.5 sm:py-1 rounded-full shadow-md border-2 border-pink-200 mt-1">
+                    สำหรับชั้นประถมศึกษาปีที่ 3
+                </span>
             </div>
 
-            <div class="bg-white p-3 sm:p-4 rounded-2xl shadow-md border-2 border-green-200 mb-6 flex flex-col items-center w-full max-w-[95%] sm:w-80">
-                <label for="category-select" class="text-green-800 font-bold mb-2 text-sm sm:text-lg">เลือกภารกิจของคุณ:</label>
-                <select id="category-select" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm sm:text-lg rounded-lg focus:ring-green-500 focus:border-green-500 block p-2 text-center font-bold outline-none cursor-pointer">
-                    <option value="แม่กน" selected>แม่กน (น ญ ณ ร ล ฬ)</option>
-                    <option value="แม่กก">แม่กก (ข ค ฆ)</option>
-                    <option value="แม่กด">แม่กด (จ ช ซ ฎ ฏ ฐ ฑ ฒ ต ถ ท ธ ศ ษ ส)</option>
-                    <option value="แม่กบ">แม่กบ (ป พ ฟ ภ)</option>
-                </select>
+            <!-- เนื้อหาแบ่ง 2 คอลัมน์ (ซ้าย=เริ่มเล่น / ขวา=ตารางคะแนน) -->
+            <div class="flex-1 min-h-0 flex flex-col md:flex-row gap-3 md:gap-4 md:items-stretch w-full max-w-3xl mx-auto">
+
+                <!-- คอลัมน์ซ้าย: ควบคุมการเล่น -->
+                <div class="md:w-1/2 flex flex-col gap-3 md:min-h-0">
+
+                    <!-- กรอกชื่อ -->
+                    <div class="bg-white p-3 sm:p-4 rounded-2xl shadow-md border-4 border-blue-300 text-center shrink-0">
+                        <p class="text-blue-700 font-extrabold text-sm sm:text-base mb-2">🔥 กรอกชื่อเพื่อเริ่มชิงแชมป์!</p>
+                        <input type="text" id="player-name-input" placeholder="👉 กรอกชื่อของคุณ..." class="w-full bg-blue-50 border-2 border-blue-200 text-blue-900 text-center font-bold text-base sm:text-lg rounded-xl focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none" maxlength="15">
+                    </div>
+
+                    <!-- เลือกด่าน -->
+                    <div class="bg-white p-3 sm:p-4 rounded-2xl shadow-md border-2 border-green-200 flex flex-col shrink-0">
+                        <label for="category-select" class="text-green-800 font-bold mb-2 text-sm sm:text-base text-center">เลือกภารกิจที่ต้องการท้าทาย:</label>
+                        <select id="category-select" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm sm:text-base rounded-lg focus:ring-green-500 focus:border-green-500 block p-2 text-center font-bold outline-none cursor-pointer">
+                            <option value="แม่กน" selected>แม่กน (น ญ ณ ร ล ฬ)</option>
+                            <option value="แม่กก">แม่กก (ข ค ฆ)</option>
+                            <option value="แม่กด">แม่กด (จ ช ซ ฎ ฏ ฐ ฑ ฒ ต ถ ท ธ ศ ษ ส)</option>
+                            <option value="แม่กบ">แม่กบ (ป พ ฟ ภ)</option>
+                        </select>
+                    </div>
+
+                    <!-- ปุ่มเริ่ม -->
+                    <button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 sm:py-4 rounded-full shadow-lg transform transition hover:scale-105 text-xl sm:text-2xl border-4 border-white animate-bounce shrink-0">
+                        ▶ เริ่มตะลุยกันเลย!
+                    </button>
+
+                    <!-- เครดิตผู้จัดทำ -->
+                    <div class="mt-auto text-center pt-1 shrink-0">
+                        <p class="text-gray-600 font-bold text-[10px] sm:text-xs">จัดทำโดย</p>
+                        <p class="text-sm sm:text-base text-blue-700 font-extrabold">ครูสุวรรณ์ษา ใหญ่พงษ์</p>
+                        <p class="text-[10px] sm:text-xs text-gray-800 font-semibold">โรงเรียนอนุบาลพรหมบุรี(วัดกุฎีทอง) สพป. สิงห์บุรี</p>
+                    </div>
+                </div>
+
+                <!-- คอลัมน์ขวา: ตารางคะแนน -->
+                <div class="md:w-1/2 flex flex-col gap-3 md:min-h-0">
+
+                    <!-- ราชาตัวสะกด (Overall King) -->
+                    <div class="bg-gradient-to-r from-yellow-300 to-yellow-500 p-1 rounded-2xl shadow-lg shrink-0">
+                        <div class="bg-white rounded-xl p-3 text-center">
+                            <p class="text-yellow-600 font-bold text-sm sm:text-base mb-2">👑 ราชาตัวสะกดทุกมาตรา (คะแนนรวม)</p>
+                            <div id="overall-king-list" class="flex flex-col gap-1">
+                                <!-- JS จะเติมข้อมูล -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top 5 ประจำด่าน -->
+                    <div class="bg-white p-3 sm:p-4 rounded-2xl shadow-md border-2 border-green-200 flex flex-col flex-1 min-h-0">
+                        <p class="text-green-700 font-bold text-sm sm:text-base text-center mb-2 shrink-0">🏆 Top 5 ประจำ <span id="lbl-current-cat">แม่กน</span></p>
+                        <div id="menu-cat-leaderboard" class="flex flex-col gap-1 text-sm overflow-y-auto custom-scroll">
+                            <!-- JS จะเติมข้อมูล -->
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-10 sm:py-4 sm:px-12 rounded-full shadow-lg transform transition hover:scale-110 text-xl sm:text-2xl border-2 sm:border-4 border-white mb-4">
-                ▶ เริ่มเล่นเลย!
-            </button>
-
-            <div class="absolute bottom-2 right-3 text-xs font-bold text-green-600/50">v2.1</div>
+            <!-- เลขเวอร์ชัน -->
+            <div class="absolute top-2 right-3 text-xs font-bold text-green-600/50">v3.1</div>
         </div>
 
-        <div id="game-over" class="absolute inset-0 bg-black/85 flex flex-col items-center justify-center z-30 hidden p-6 text-center">
-            <h1 class="text-5xl font-extrabold text-white mb-4 drop-shadow-lg">จบเกม!</h1>
-            <p class="text-white text-2xl mb-2">คะแนนของคุณคือ: <span id="final-score" class="text-yellow-400 font-bold text-4xl">0</span></p>
-            <p class="text-white text-xl mb-8">ไปถึงเลเวล: <span id="final-level" class="text-purple-400 font-bold text-3xl">1</span></p>
+        <!-- หน้าจบเกม -->
+        <div id="game-over" class="absolute inset-0 bg-black/90 flex flex-col items-center justify-center z-30 hidden p-4 text-center overflow-y-auto custom-scroll">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white mb-2 drop-shadow-lg mt-10">จบเกม!</h1>
+            <p class="text-white text-xl sm:text-2xl mb-1">คุณ <span id="final-name" class="text-blue-300 font-bold">...</span></p>
+            <p class="text-white text-lg sm:text-xl mb-1">คะแนนของคุณ: <span id="final-score" class="text-yellow-400 font-bold text-3xl sm:text-4xl">0</span></p>
+            <p class="text-white text-sm sm:text-base mb-6">ไปถึงเลเวล: <span id="final-level" class="text-purple-400 font-bold text-xl">1</span></p>
             
-            <div class="flex flex-col sm:flex-row gap-4 w-full max-w-sm justify-center">
-                <button id="play-again-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition hover:scale-105 text-lg border-2 border-white flex-1">
-                    🔄 เล่นใหม่อีกครั้ง
+            <!-- สรุปอันดับตอนจบ -->
+            <div class="bg-white p-4 rounded-xl shadow-lg border-4 border-yellow-400 mb-6 w-full max-w-[95%] sm:max-w-sm">
+                <p class="text-yellow-600 font-extrabold text-lg text-center mb-2">🏆 สรุปอันดับ <span id="end-cat-name"></span></p>
+                <div id="end-leaderboard" class="flex flex-col gap-1 text-sm text-left">
+                    <!-- JS จะเติมข้อมูล -->
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 w-full max-w-sm justify-center mb-10">
+                <button id="play-again-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-full shadow-lg transform transition hover:scale-105 text-base sm:text-lg border-2 border-white flex-1">
+                    🔄 เล่นด่านเดิมอีกครั้ง
                 </button>
-                <button id="restart-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transform transition hover:scale-105 text-lg border-2 border-white flex-1">
-                    🏠 กลับไปหน้าหลัก
+                <button id="restart-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-full shadow-lg transform transition hover:scale-105 text-base sm:text-lg border-2 border-white flex-1">
+                    🏠 กลับเมนูหลัก
                 </button>
             </div>
         </div>
 
+        <!-- ตัวเกม -->
         <canvas id="gameCanvas" class="absolute inset-0 z-0"></canvas>
 
     </div>
@@ -178,6 +248,127 @@
         });
 
         // ==========================================
+        // ระบบ LEADERBOARD (จัดเก็บใน localStorage)
+        // ==========================================
+        const allCategories = ["แม่กน", "แม่กก", "แม่กด", "แม่กบ"];
+        let currentPlayerName = "";
+        const categorySelect = document.getElementById('category-select');
+
+        // ดึงข้อมูล Leaderboard ของหมวดนั้นๆ
+        function getLeaderboard(cat) {
+            return JSON.parse(localStorage.getItem('spellGame_lb_' + cat) || '[]');
+        }
+
+        // บันทึกคะแนนใหม่ (เก็บเฉพาะคะแนนสูงสุดของคนนั้น)
+        function saveScore(cat, name, newScore) {
+            let lb = getLeaderboard(cat);
+            let existingPlayer = lb.find(p => p.name === name);
+            if (existingPlayer) {
+                if (newScore > existingPlayer.score) {
+                    existingPlayer.score = newScore;
+                }
+            } else {
+                lb.push({ name: name, score: newScore });
+            }
+            // เรียงลำดับคะแนนจากมากไปน้อย
+            lb.sort((a, b) => b.score - a.score);
+            localStorage.setItem('spellGame_lb_' + cat, JSON.stringify(lb));
+        }
+
+        // คำนวณราชาตัวสะกด (คะแนนรวมสูงสุดจากทุกหมวด)
+        function updateOverallKingUI() {
+            let playerTotals = {};
+            allCategories.forEach(cat => {
+                let lb = getLeaderboard(cat);
+                lb.forEach(p => {
+                    if (!playerTotals[p.name]) playerTotals[p.name] = 0;
+                    playerTotals[p.name] += p.score;
+                });
+            });
+
+            let sortedOverall = Object.keys(playerTotals).map(name => ({
+                name: name, score: playerTotals[name]
+            })).sort((a, b) => b.score - a.score);
+
+            const kingTitles = ['ราชาตัวสะกด', 'อุปราชตัวสะกด', 'ขุนพลตัวสะกด'];
+            let html = '';
+            if (sortedOverall.length === 0) {
+                html = '<div class="text-gray-500 text-sm">ยังไม่มีผู้ท้าชิง มาร่วมเป็นคนแรกสิ!</div>';
+            } else {
+                sortedOverall.slice(0, 3).forEach((p, index) => {
+                    let medal = index === 0 ? '👑' : index === 1 ? '🥈' : '🥉';
+                    let bg = index === 0 ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-gray-50 border border-gray-200';
+                    let titleColor = index === 0 ? 'text-yellow-600' : 'text-gray-500';
+                    let nameSize = index === 0 ? 'text-base sm:text-lg font-extrabold text-yellow-700' : 'text-sm font-bold text-gray-700';
+                    html += `
+                        <div class="${bg} p-2 rounded-lg flex justify-between items-center shadow-sm">
+                            <div class="text-left leading-tight">
+                                <div class="text-[10px] sm:text-xs font-bold ${titleColor}">${medal} ${kingTitles[index]}</div>
+                                <div class="${nameSize}">${p.name}</div>
+                            </div>
+                            <span class="${nameSize} shrink-0">${p.score} <span class="text-[10px] font-normal">แต้มรวม</span></span>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('overall-king-list').innerHTML = html;
+        }
+
+        // อัปเดตตาราง Leaderboard บนเมนูหลัก (ตามหมวดที่เลือก)
+        function updateMenuCategoryLeaderboard() {
+            const cat = categorySelect.value;
+            document.getElementById('lbl-current-cat').innerText = cat;
+            let lb = getLeaderboard(cat);
+            let html = '';
+            
+            if(lb.length === 0){
+                html = '<div class="text-gray-500 text-center py-1">ยังไม่มีผู้ท้าชิง</div>';
+            } else {
+                lb.slice(0, 5).forEach((p, index) => {
+                    let rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index+1}.`;
+                    html += `
+                        <div class="bg-white p-1 px-2 rounded flex justify-between shadow-sm border border-gray-100">
+                            <span class="font-bold text-gray-700">${rankIcon} ${p.name}</span>
+                            <span class="font-bold text-green-600">${p.score}</span>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('menu-cat-leaderboard').innerHTML = html;
+        }
+
+        // ฟังชันเปลี่ยนหมวดปุ๊บ ตารางเปลี่ยนปั๊บ
+        categorySelect.addEventListener('change', updateMenuCategoryLeaderboard);
+
+        // อัปเดตตาราง Live Leaderboard มุมซ้ายบนระหว่างเล่นเกมส์
+        function updateLiveHUDLeaderboard() {
+            let cat = categorySelect.value;
+            let lb = getLeaderboard(cat);
+            
+            // กรองชื่อตัวเองที่เป็นสถิติเก่าออก เพื่อใช้คะแนน Live ปัจจุบันมาจัดอันดับ
+            lb = lb.filter(p => p.name !== currentPlayerName);
+            lb.push({ name: currentPlayerName, score: score, isLive: true });
+            
+            // เรียงใหม่
+            lb.sort((a, b) => b.score - a.score);
+
+            let html = '';
+            lb.slice(0, 5).forEach((p, index) => {
+                let rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index+1}.`;
+                // ไฮไลต์ชื่อตัวเองเป็นสีเขียว
+                let bgClass = p.isLive ? 'bg-green-500 text-white shadow-md transform scale-105 transition-all' : 'bg-gray-100 text-gray-700';
+                
+                html += `
+                    <div class="${bgClass} px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-bold flex justify-between items-center">
+                        <span class="truncate max-w-[70%]">${rankIcon} ${p.name}</span>
+                        <span>${p.score}</span>
+                    </div>
+                `;
+            });
+            document.getElementById('hud-leaderboard').innerHTML = html;
+        }
+
+        // ==========================================
         // เกม Logic & ฐานข้อมูลคำศัพท์
         // ==========================================
         const canvas = document.getElementById('gameCanvas');
@@ -190,20 +381,12 @@
         const livesDisplay = document.getElementById('lives-display');
         const levelDisplay = document.getElementById('level-display');
         const levelContainer = document.getElementById('level-container');
-        const finalScoreDisplay = document.getElementById('final-score');
-        const finalLevelDisplay = document.getElementById('final-level');
-        const categorySelect = document.getElementById('category-select');
-
-        // ฟังก์ชันปรับขนาดจอให้พอดีเป๊ะ (Responsive แบบเรียลไทม์)
+        
         function resizeCanvas() {
             const container = document.getElementById('game-container');
             canvas.width = container.clientWidth;
             canvas.height = container.clientHeight;
-            
-            // ปรับตำแหน่งตะกร้าให้อยู่เหนือขอบล่างนิดหน่อย
             player.y = canvas.height - player.height - 20; 
-            
-            // ดึงตะกร้ากลับมาถ้าหลุดขอบจอตอนหมุนมือถือ
             if(player.x + player.width > canvas.width) {
                 player.x = canvas.width / 2 - player.width / 2;
             }
@@ -234,9 +417,6 @@
             hudMission.innerText = `🎯 เก็บคำ: ${selectedCategory}`;
         }
 
-        // ==========================================
-        // ผู้เล่น (ตะกร้า 🧺)
-        // ==========================================
         const player = {
             width: 80, height: 70,
             x: 0, y: 0,
@@ -254,9 +434,6 @@
             }
         };
 
-        // ==========================================
-        // คำศัพท์ (ผลไม้ 🍎🍊🍇)
-        // ==========================================
         class WordItem {
             constructor() {
                 this.radius = 40; 
@@ -290,9 +467,6 @@
             update() { this.y += this.speed; }
         }
 
-        // ==========================================
-        // การควบคุม (คีย์บอร์ด + สัมผัส) 
-        // ==========================================
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowLeft') player.dx = -player.speed;
             if (e.key === 'ArrowRight') player.dx = player.speed;
@@ -301,25 +475,16 @@
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') player.dx = 0;
         });
 
-        // ฟังก์ชันลากนิ้วที่คำนวณตำแหน่งจอได้แม่นยำ 100%
         function handleTouchMove(e) {
             if (gameState !== 'PLAYING') return;
             if (e.cancelable) e.preventDefault(); 
-
             const rect = canvas.getBoundingClientRect();
             let clientX;
-            
-            if (e.type.includes('touch')) {
-                clientX = e.touches[0].clientX;
-            } else {
-                clientX = e.clientX;
-            }
-
+            if (e.type.includes('touch')) { clientX = e.touches[0].clientX; } 
+            else { clientX = e.clientX; }
             let targetX = (clientX - rect.left) - (player.width / 2);
-            
             if (targetX < 0) targetX = 0;
             if (targetX + player.width > canvas.width) targetX = canvas.width - player.width;
-
             player.x = targetX;
         }
         
@@ -334,6 +499,7 @@
             scoreDisplay.innerText = score; levelDisplay.innerText = level;
             let hearts = ''; for(let i=0; i<lives; i++) hearts += '❤️';
             livesDisplay.innerText = hearts || '💔';
+            updateLiveHUDLeaderboard(); // อัปเดตกระดานคะแนนเรียลไทม์
         }
 
         function checkLevelUp() {
@@ -345,13 +511,37 @@
             }
         }
 
-        // ฟังก์ชันเรียกหน้า Game Over ที่เพิ่มกลับมาแล้ว!
         function endGame() {
             gameState = 'GAMEOVER';
             soundGameOver();
             cancelAnimationFrame(animationId);
-            finalScoreDisplay.innerText = score;
-            finalLevelDisplay.innerText = level;
+            
+            // บันทึกคะแนนลง Leaderboard
+            const cat = categorySelect.value;
+            saveScore(cat, currentPlayerName, score);
+            
+            // เตรียมหน้าจอจบเกม
+            document.getElementById('final-name').innerText = currentPlayerName;
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-level').innerText = level;
+            document.getElementById('end-cat-name').innerText = cat;
+            
+            // สรุปอันดับ Top 5 ในหน้าจบเกม และไฮไลต์คนปัจจุบัน
+            let lb = getLeaderboard(cat);
+            let html = '';
+            lb.slice(0, 5).forEach((p, index) => {
+                let rankIcon = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index+1}.`;
+                let isMe = p.name === currentPlayerName;
+                let bg = isMe ? 'bg-green-100 border border-green-400 font-bold' : 'bg-gray-50 border border-gray-200';
+                html += `
+                    <div class="${bg} p-2 rounded flex justify-between shadow-sm">
+                        <span class="${isMe ? 'text-green-700' : 'text-gray-700'}">${rankIcon} ${p.name} ${isMe ? '(คุณ)' : ''}</span>
+                        <span class="${isMe ? 'text-green-700' : 'text-gray-700'}">${p.score}</span>
+                    </div>
+                `;
+            });
+            document.getElementById('end-leaderboard').innerHTML = html;
+            
             hud.classList.add('hidden');
             gameOverScreen.classList.remove('hidden');
         }
@@ -380,7 +570,6 @@
                 }
             }
 
-            // พื้นหลังระหว่างเล่นเกม
             ctx.fillStyle = '#EBF8FF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -398,10 +587,9 @@
                 let hitY = word.y + word.radius > player.y && word.y < player.y + player.height;
 
                 if (hitX && hitY) {
-                    if (word.isCorrect) { score += 10; soundCorrect(); checkLevelUp(); } 
+                    if (word.isCorrect) { score += 10; soundCorrect(); checkLevelUp(); updateDisplay(); } 
                     else { loseLife(); }
                     fallingWords.splice(i, 1);
-                    updateDisplay();
                 } else if (word.y - word.radius > canvas.height) {
                     if (word.isCorrect) loseLife();
                     fallingWords.splice(i, 1);
@@ -412,6 +600,16 @@
         }
 
         function startGame() {
+            // เช็คว่ากรอกชื่อหรือยัง
+            const nameInput = document.getElementById('player-name-input');
+            const nameValue = nameInput.value.trim();
+            if(!nameValue) {
+                alert("⚠️ กรุณากรอกชื่อของคุณก่อนเริ่มแข่งขันครับ!");
+                nameInput.focus();
+                return;
+            }
+            currentPlayerName = nameValue;
+
             try {
                 resizeCanvas(); 
                 initAudio(); soundClick(); 
@@ -424,7 +622,7 @@
                 fallingWords = [];
                 player.x = canvas.width / 2 - player.width / 2;
                 
-                updateDisplay();
+                updateDisplay(); // จะอัปเดตกระดานคะแนนเรียลไทม์ด้วย
                 mainMenu.classList.add('hidden');
                 gameOverScreen.classList.add('hidden');
                 hud.classList.remove('hidden');
@@ -441,17 +639,32 @@
             gameOverScreen.classList.add('hidden');
             mainMenu.classList.remove('hidden');
             
+            // รีเฟรชตารางต่างๆ ใหม่
+            updateOverallKingUI();
+            updateMenuCategoryLeaderboard();
+            
             ctx.fillStyle = '#EBF8FF';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
-        // จัดการเหตุการณ์ปุ่มกดต่างๆ
         document.getElementById('start-btn').addEventListener('click', startGame);
         document.getElementById('play-again-btn').addEventListener('click', startGame);
         document.getElementById('restart-btn').addEventListener('click', showMenu);
         
-        // วาดฉากหลังรอตอนโหลดหน้าเว็บ
-        setTimeout(resizeCanvas, 100); 
+        // เมื่อเปิดหน้าเว็บครั้งแรก
+        setTimeout(() => {
+            resizeCanvas();
+            updateOverallKingUI();
+            updateMenuCategoryLeaderboard();
+            // ดึงชื่อเก่า (ถ้ามีเคยเล่น) มาใส่รอไว้
+            const lastPlayer = localStorage.getItem('spellGame_lastPlayer');
+            if(lastPlayer) document.getElementById('player-name-input').value = lastPlayer;
+        }, 100); 
+
+        // จำชื่อล่าสุดที่กรอก
+        document.getElementById('player-name-input').addEventListener('change', function(e) {
+            localStorage.setItem('spellGame_lastPlayer', e.target.value.trim());
+        });
 
     </script>
 </body>
