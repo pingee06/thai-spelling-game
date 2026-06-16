@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกม “ตะลุยตัวสะกดไม่ตรงมาตรา”</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Mali', cursive; }
+        canvas { touch-action: none; user-select: none; }
+    </style>
+</head>
+<body class="bg-green-100 flex items-center justify-center min-h-screen p-4">
+
+    <div id="game-container" class="relative w-full max-w-4xl bg-white overflow-hidden rounded-3xl shadow-2xl border-4 border-green-400" style="aspect-ratio: 4/3;">
+        
+        <div id="hud" class="absolute top-0 left-0 w-full p-4 flex justify-between items-start pointer-events-none hidden z-10">
+            <div class="flex flex-col gap-2 pointer-events-auto">
+                <div id="hud-mission" class="bg-green-600 text-white px-4 py-2 rounded-xl shadow-md font-bold text-lg border-2 border-white">
+                    🎯 เก็บคำ: แม่กน
+                </div>
+                <div class="bg-purple-600 text-white px-4 py-2 rounded-xl shadow-md font-extrabold text-xl border-2 border-white inline-block text-center transition-transform" id="level-container">
+                    ⭐ เลเวล: <span id="level-display">1</span>
+                </div>
+                <button id="bgm-toggle" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl shadow-md font-bold text-sm border-2 border-white transition-colors mt-1 cursor-pointer">
+                    🎵 เปิดเพลง
+                </button>
+            </div>
+            
+            <div class="flex flex-col items-end gap-2">
+                <div class="bg-white text-green-800 px-4 py-2 rounded-xl shadow-md font-bold text-xl border-2 border-green-200">
+                    คะแนน: <span id="score-display">0</span>
+                </div>
+                <div class="bg-white text-red-500 px-4 py-2 rounded-xl shadow-md font-bold text-xl border-2 border-red-200">
+                    หัวใจ: <span id="lives-display">❤️❤️❤️</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-menu" class="absolute inset-0 bg-gradient-to-b from-green-50 to-emerald-200 flex flex-col items-center justify-center z-20 p-6">
+            <h1 class="text-3xl md:text-5xl font-extrabold text-green-700 mb-3 drop-shadow-md text-center leading-tight">
+                เกม “ตะลุยตัวสะกดไม่ตรงมาตรา”
+            </h1>
+            <h2 class="text-lg md:text-xl font-bold text-pink-600 mb-6 bg-white px-6 py-2 rounded-full shadow-md border-2 border-pink-200">
+                สำหรับนักเรียนชั้นประถมศึกษาปีที่ 3
+            </h2>
+            
+            <div class="bg-white/90 p-5 rounded-2xl shadow-lg border-4 border-green-300 mb-6 flex flex-col items-center w-full max-w-md text-center transition hover:scale-105">
+                <p class="text-gray-600 font-bold mb-1">จัดทำโดย</p>
+                <p class="text-2xl text-blue-700 font-extrabold mb-3">ครูสุวรรณ์ษา ใหญ่พงษ์</p>
+                <p class="text-md text-gray-800 font-semibold">โรงเรียนอนุบาลพรหมบุรี(วัดกุฎีทอง)</p>
+                <p class="text-sm text-gray-700 mt-1">สำนักงานเขตพื้นที่การศึกษาประถมศึกษาสิงห์บุรี</p>
+            </div>
+
+            <div class="bg-white p-4 rounded-2xl shadow-md border-2 border-green-200 mb-6 flex flex-col items-center w-80">
+                <label for="category-select" class="text-green-800 font-bold mb-2 text-lg">เลือกภารกิจของคุณ:</label>
+                <select id="category-select" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-lg rounded-lg focus:ring-green-500 focus:border-green-500 block p-2.5 text-center font-bold outline-none cursor-pointer">
+                    <option value="แม่กน" selected>แม่กน (น ญ ณ ร ล ฬ)</option>
+                    <option value="แม่กก">แม่กก (ข ค ฆ)</option>
+                    <option value="แม่กด">แม่กด (จ ช ซ ฎ ฏ ฐ ฑ ฒ ต ถ ท ธ ศ ษ ส)</option>
+                    <option value="แม่กบ">แม่กบ (ป พ ฟ ภ)</option>
+                </select>
+            </div>
+
+            <button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-10 rounded-full shadow-lg transform transition hover:scale-110 text-2xl border-4 border-white">
+                ▶ เริ่มเล่นเลย!
+            </button>
+        </div>
+
+        <div id="game-over" class="absolute inset-0 bg-black/85 flex flex-col items-center justify-center z-30 hidden p-6 text-center">
+            <h1 class="text-5xl font-extrabold text-white mb-4 drop-shadow-lg">จบเกม!</h1>
+            <p class="text-white text-2xl mb-2">คะแนนของคุณคือ: <span id="final-score" class="text-yellow-400 font-bold text-4xl">0</span></p>
+            <p class="text-white text-xl mb-8">ไปถึงเลเวล: <span id="final-level" class="text-purple-400 font-bold text-3xl">1</span></p>
+            <button id="restart-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transform transition hover:scale-105 text-xl border-2 border-white">
+                กลับไปหน้าหลัก
+            </button>
+        </div>
+
+        <canvas id="gameCanvas" class="block w-full h-full"></canvas>
+
+    </div>
+
+    <script>
+        // ==========================================
+        // ระบบเสียง (Web Audio API Synthesizer)
+        // ==========================================
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone(freq, type, duration, volume = 0.1) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        // เสียง Effect (SFX)
+        function soundClick() { playTone(600, 'sine', 0.1, 0.1); }
+        function soundCorrect() {
+            playTone(523.25, 'sine', 0.1, 0.1); 
+            setTimeout(() => playTone(659.25, 'sine', 0.2, 0.1), 100); 
+        }
+        function soundLevelUp() {
+            playTone(440, 'square', 0.1, 0.05); 
+            setTimeout(() => playTone(554.37, 'square', 0.1, 0.05), 100); 
+            setTimeout(() => playTone(659.25, 'square', 0.3, 0.05), 200); 
+        }
+        function soundWrong() { playTone(150, 'sawtooth', 0.3, 0.1); }
+        function soundGameOver() {
+            playTone(300, 'square', 0.2, 0.1);
+            setTimeout(() => playTone(250, 'square', 0.2, 0.1), 200);
+            setTimeout(() => playTone(200, 'square', 0.4, 0.1), 400);
+        }
+
+        // ==========================================
+        // ระบบเพลงประกอบ (BGM)
+        // ==========================================
+        let bgmEnabled = true;
+        let noteIndex = 0;
+        // ตัวโน้ตสำหรับสร้างเมโลดี้พื้นหลังแบบวนลูป
+        const bgmNotes = [196.00, 261.63, 329.63, 261.63]; 
+
+        const bgmToggleBtn = document.getElementById('bgm-toggle');
+        bgmToggleBtn.addEventListener('click', () => {
+            bgmEnabled = !bgmEnabled;
+            if (bgmEnabled) {
+                bgmToggleBtn.innerText = '🎵 เปิดเพลง';
+                bgmToggleBtn.classList.replace('bg-gray-500', 'bg-blue-500');
+                bgmToggleBtn.classList.replace('hover:bg-gray-600', 'hover:bg-blue-600');
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            } else {
+                bgmToggleBtn.innerText = '🔇 ปิดเพลง';
+                bgmToggleBtn.classList.replace('bg-blue-500', 'bg-gray-500');
+                bgmToggleBtn.classList.replace('hover:bg-blue-600', 'hover:bg-gray-600');
+            }
+        });
+
+        // ==========================================
+        // เกม Logic & ฐานข้อมูลคำศัพท์ 
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 800;
+        canvas.height = 600;
+
+        const mainMenu = document.getElementById('main-menu');
+        const hud = document.getElementById('hud');
+        const hudMission = document.getElementById('hud-mission');
+        const gameOverScreen = document.getElementById('game-over');
+        const scoreDisplay = document.getElementById('score-display');
+        const livesDisplay = document.getElementById('lives-display');
+        const levelDisplay = document.getElementById('level-display');
+        const levelContainer = document.getElementById('level-container');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const finalLevelDisplay = document.getElementById('final-level');
+        const categorySelect = document.getElementById('category-select');
+
+        // คลังคำศัพท์
+        const wordDatabase = {
+            "แม่กน": [
+                "อาหาร", "กุมาร", "ทหาร", "โวหาร", "ละคร", "นคร", "ปลาวาฬ", "กุศล", 
+                "ปีขาล", "เกสร", "บิดร", "บริเวณ", "ปฏิญาณ", "พยาบาล", "อนุบาล", 
+                "โคจร", "อาจารย์", "จราจร", "ศาล", "เณร", "เวร", "ศีล", "คูณ", "เพียร"
+            ],
+            "แม่กก": [
+                "สุนัข", "ประมุข", "วิหค", "ประโยค", "บริจาค", "พญานาค", "บริโภค", 
+                "พยัคฆ์", "สมัคร", "ตัวเลข", "เมฆ", "โชค", "โรค", "เลข", "นาค", "มุข", 
+                "ภาค", "สุข", "ยุค"
+            ],
+            "แม่กด": [
+                "โอกาส", "อากาศ", "ประเทศ", "พิเศษ", "ปฏิเสธ", "ชีวิต", "ปรากฏ", 
+                "อดีต", "อนาคต", "พิฆาต", "พินิจ", "ยาพิษ", "พาณิชย์", "โอสถ", "กิเลส", 
+                "สาเหตุ", "ตำรวจ", "อิฐ", "โกรธ", "แพทย์", "เพชร", "กฎ", "รัฐ", "สัตว์", "ครุฑ", "บวช"
+            ],
+            "แม่กบ": [
+                "เคารพ", "ยีราฟ", "ทวีป", "สรุป", "อาชีพ", "สภาพ", "สุภาพ", "อพยพ", 
+                "ชูชีพ", "ปรารภ", "พิภพ", "มานพ", "เทพ", "ภาพ", "ลาภ", "โลภ", "บาป", 
+                "ธูป", "กราฟ", "กอล์ฟ", "สาป", "เสิร์ฟ", "คำศัพท์", "ไมโครเวฟ"
+            ]
+        };
+
+        let currentCorrectWords = [];
+        let currentWrongWords = [];
+
+        let gameState = 'MENU';
+        let score = 0;
+        let lives = 3;
+        let level = 1;
+        let animationId;
+        let frameCount = 0;
+        let fallingWords = [];
+
+        function prepareWords(selectedCategory) {
+            currentCorrectWords = wordDatabase[selectedCategory];
+            currentWrongWords = [];
+            
+            for (let category in wordDatabase) {
+                if (category !== selectedCategory) {
+                    currentWrongWords = currentWrongWords.concat(wordDatabase[category]);
+                }
+            }
+            hudMission.innerText = `🎯 เก็บคำ: ${selectedCategory}`;
+        }
+
+        // ==========================================
+        // ผู้เล่น (ตะกร้า 🧺)
+        // ==========================================
+        const player = {
+            width: 100, height: 80,
+            x: canvas.width / 2 - 50, y: canvas.height - 100,
+            speed: 12,
+            dx: 0,
+            draw: function() {
+                ctx.font = '80px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🧺', this.x + this.width / 2, this.y + this.height / 2);
+            },
+            update: function() {
+                this.x += this.dx;
+                if (this.x < 0) this.x = 0;
+                if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+            }
+        };
+
+        // ==========================================
+        // คำศัพท์ (ผลไม้ 🍎🍊🍇)
+        // ==========================================
+        class WordItem {
+            constructor() {
+                this.radius = 45; 
+                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
+                this.y = -this.radius;
+                
+                let baseSpeed = Math.random() * 1.0 + 1.5; 
+                this.speed = baseSpeed + (level * 0.3); 
+                
+                this.isCorrect = Math.random() > 0.5;
+                if (this.isCorrect) {
+                    this.text = currentCorrectWords[Math.floor(Math.random() * currentCorrectWords.length)];
+                } else {
+                    this.text = currentWrongWords[Math.floor(Math.random() * currentWrongWords.length)];
+                }
+
+                const fruits = ['🍎', '🍊', '🍇', '🍉', '🍓', '🥭', '🍍', '🍑', '🍒', '🥥'];
+                this.fruit = fruits[Math.floor(Math.random() * fruits.length)];
+            }
+            draw() {
+                ctx.font = '70px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.fruit, this.x, this.y - 10);
+
+                ctx.font = 'bold 24px "Mali", "Sarabun", sans-serif'; 
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = '#ffffff';
+                ctx.strokeText(this.text, this.x, this.y + 25);
+                ctx.fillStyle = '#1E3A8A';
+                ctx.fillText(this.text, this.x, this.y + 25);
+            }
+            update() {
+                this.y += this.speed;
+            }
+        }
+
+        // การควบคุม
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') player.dx = -player.speed;
+            if (e.key === 'ArrowRight') player.dx = player.speed;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') player.dx = 0;
+        });
+        function handleTouchMove(e) {
+            if (gameState !== 'PLAYING') return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            let mouseX = (clientX - rect.left) * scaleX;
+            player.x = mouseX - (player.width / 2);
+        }
+        canvas.addEventListener('mousemove', handleTouchMove);
+        canvas.addEventListener('touchmove', handleTouchMove, {passive: false});
+
+        function updateDisplay() {
+            scoreDisplay.innerText = score;
+            levelDisplay.innerText = level;
+            let hearts = '';
+            for(let i=0; i<lives; i++) hearts += '❤️';
+            livesDisplay.innerText = hearts || '💔';
+        }
+
+        function checkLevelUp() {
+            let newLevel = Math.min(10, Math.floor(score / 100) + 1);
+            if (newLevel > level) {
+                level = newLevel;
+                soundLevelUp();
+                
+                levelContainer.classList.add('scale-125', 'bg-pink-500');
+                setTimeout(() => levelContainer.classList.remove('scale-125', 'bg-pink-500'), 300);
+            }
+        }
+
+        function loseLife() {
+            lives--;
+            updateDisplay();
+            soundWrong();
+            canvas.style.opacity = 0.5;
+            setTimeout(() => canvas.style.opacity = 1, 100);
+            if (lives <= 0) endGame();
+        }
+
+        function spawnWord() {
+            let spawnRate = Math.max(70, 160 - (level * 9)); 
+            if (frameCount % spawnRate === 0) fallingWords.push(new WordItem());
+        }
+
+        // ==========================================
+        // Loop หลักของเกม (สมบูรณ์แล้ว)
+        // ==========================================
+        function update() {
+            if (gameState !== 'PLAYING') return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // เล่นเสียง BGM (ความเร็วแปรผันตาม Level)
+            if (bgmEnabled) {
+                let bgmSpeed = Math.max(15, 45 - (level * 3)); // ยิ่งเลเวลเยอะ ตัวเลขยิ่งน้อย = ยิ่งเร็ว
+                if (frameCount % bgmSpeed === 0) {
+                    let freq = bgmNotes[noteIndex % bgmNotes.length];
+                    playTone(freq, 'sine', 0.15, 0.03); // เสียงนุ่มๆ เบาๆ
+                    noteIndex++;
+                }
+            }
+
+            ctx.fillStyle = '#EBF8FF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            player.update();
+            player.draw();
+
+            spawnWord();
+
+            for (let i = fallingWords.length - 1; i >= 0; i--) {
+                let word = fallingWords[i];
+                word.update();
+                word.draw();
+
+                let hitX = word.x + word.radius > player.x && word.x - word.radius < player.x + player.width;
+                let hitY = word.y + word.radius > player.y && word.y < player.y + player.height;
+
+                if (hitX && hitY) {
+                    if (word.isCorrect) {
+                        score += 10;
+                        soundCorrect(); 
+                        checkLevelUp(); 
+                    } else {
+                        loseLife(); 
+                    }
+                    fallingWords.splice(i, 1);
+                    updateDisplay();
+                } else if (word.y - word.radius > canvas.height) {
+                    if (word.isCorrect) loseLife();
+                    fallingWords.splice(i, 1);
+                }
+            }
+            frameCount++;
+            animationId = requestAnimationFrame(update);
+        }
+
+        function startGame() {
+            soundClick(); 
+            const selectedCategory = categorySelect.value;
+            prepareWords(selectedCategory);
+
+            gameState = 'PLAYING';
+            score = 0;
+            lives = 3;
+            level = 1;
+            frameCount = 0;
+            noteIndex = 0;
+            fallingWords = [];
+            player.x = canvas.width / 2 - player.width / 2;
+            
+            updateDisplay();
+            mainMenu.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            hud.classList.remove('hidden');
+            
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            update();
+        }
+
+        function showMenu() {
+            soundClick(); 
+            gameState = 'MENU';
+            cancelAnimationFrame(animationId);
+            hud.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+            
+            ctx.fillStyle = '#EBF8FF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', showMenu);
+
+        function endGame() {
+            gameState = 'GAMEOVER';
+            soundGameOver(); 
+            cancelAnimationFrame(animationId);
+            finalScoreDisplay.innerText = score;
+            finalLevelDisplay.innerText = level;
+            hud.classList.add('hidden');
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        ctx.fillStyle = '#EBF8FF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>
